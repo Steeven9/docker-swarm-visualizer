@@ -4,14 +4,9 @@ import padStart from 'string.prototype.padstart';
 import { uuidRegExp } from './utils/helpers';
 
 import {
-    getUri,
-    getParallel,
-    getAllContainers,
     getAllNodes,
-    getAllTasks,
     getAllServices,
-    getAllNodeClusters,
-    getWebSocket
+    getAllTasks
 } from './utils/request';
 
 let STARTED = 0;
@@ -76,20 +71,20 @@ let physicalStructProvider = ([initialNodes, initialContainers]) => {
                 let imageNameRegex = /([^/]+?)(\:([^/]+))?$/;
                 let imageNameMatches = imageNameRegex.exec(cloned.Spec.ContainerSpec.Image);
                 let tagName = imageNameMatches[3];
-                let dateStamp = dt.getDate() + "/" + (dt.getMonth() + 1) + " " + dt.getHours() + ":" + padStart(dt.getMinutes().toString(), 2, "0");
+                let dateStamp = padStart(dt.getDate().toString(), 2, "0") + "/" + padStart((dt.getMonth() + 1).toString(), 2, "0") + " " + padStart(dt.getHours().toString(), 2, "0") + ":" + padStart(dt.getMinutes().toString(), 2, "0");
                 let startState = cloned.Status.State;
+                serviceName = serviceName ? serviceName : ""
+                if (serviceName.includes("home_"))
+                    serviceName = serviceName.split("home_")[1]
 
-
-
-
-                let imageTag = "<div style='height: 100%; padding: 5px 5px 5px 5px; border: 2px solid " + color + "'>" +
+                let imageTag = "<div style='height: 100%; padding: 5px; margin: 5px; border: 2px solid " + color + "'>" +
                     "<span class='contname' style='color: white; font-weight: bold;font-size: 12px'>" + serviceName + "</span>" +
-                    "<br/> image : " + imageNameMatches[0] +
-                    "<br/> tag : " + (tagName ? tagName : "latest") +
-                    "<br/>" + (cloned.Spec.ContainerSpec.Args ? " cmd : " + cloned.Spec.ContainerSpec.Args + "<br/>" : "") +
-                    " updated : " + dateStamp +
-                    "<br/>" + (cloned.Status.ContainerStatus? cloned.Status.ContainerStatus.ContainerID : "null") +
-                    "<br/> state : " + startState +
+                    // "<br/> image: " + imageNameMatches[0] +
+                    // "<br/> tag : " + (tagName ? tagName : "latest") +
+                    // "<br/>" + (cloned.Spec.ContainerSpec.Args ? " cmd : " + cloned.Spec.ContainerSpec.Args + "<br/>" : "") +
+                    "<br/> updated: " + dateStamp +
+                    // "<br/>" + (cloned.Status.ContainerStatus? cloned.Status.ContainerStatus.ContainerID : "null") +
+                    " state: " + startState +
                     "</div>";
 
                 if (node.Spec.Role == 'manager') {
@@ -100,6 +95,7 @@ let physicalStructProvider = ([initialNodes, initialContainers]) => {
                 cloned.state = startState;
 
                 node.children.push(cloned);
+                node.children.sort((a, b) => a.ServiceName && b.ServiceName && a.ServiceName.localeCompare(b.ServiceName))
                 return true;
             });
         },
@@ -173,8 +169,8 @@ let physicalStructProvider = ([initialNodes, initialContainers]) => {
                             name = node.Description.Hostname;
                             if (name.length > 0) {
                                 currentnode.Description.Hostname = name;
-                                currentnode.name = name + " <br/><span class='noderole'>" + node.Spec.Role +
-                                    "</span><br/><span class='nodemem'>" + (currentnode.Description.Resources.MemoryBytes / 1024 / 1024 / 1024).toFixed(3) + "G RAM</span><br/>" +
+                                currentnode.name = name + " <span class='noderole'>" + node.Spec.Role + " " + node.Spec.Availability +
+                                    "</span><br> <span class='nodemem'>" + (currentnode.Description.Resources.MemoryBytes / 1024 / 1024 / 1024).toFixed(3) + "GB RAM</span> " +
                                     "<span class='nodeplatform'>" + (currentnode.Description.Platform.Architecture) + "/" + (currentnode.Description.Platform.OS) + "</span>" +
                                     "<div class='labelarea'>";
                                 for (var key in node.Spec.Labels) {
